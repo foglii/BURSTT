@@ -1,9 +1,12 @@
-from ryu.base import app_manager
+
 from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
-from ryu.lib.packet import packet, ethernet, ether_types
+from ryu.lib.packet import packet, ethernet, ether_types,tcp
+import datetime
+import time
+from ryu.base import app_manager
 
 # This implements a learning switch in the controller
 # The switch sends all packets to the controller
@@ -91,7 +94,10 @@ class PsrSwitch(app_manager.RyuApp):
         )
         datapath.send_msg(out)
 
-
+        tcp_header=pkt.get_protocol(tcp.tcp)
+        tcp_flag=pkt.get_protocol(tcp.tcp).
+        if tcp_header is not None and tcp_header.has_flags(tcp.TCP_SYN):
+            self.logger.info("SYN packet detected")
         for p in pkt:
             if p.protocol_name == 'tcp':
         # if the output port is not FLOODING
@@ -122,4 +128,6 @@ class PsrSwitch(app_manager.RyuApp):
         dp = msg.datapath
         ofp = dp.ofproto
         if msg.reason == ofp.OFPRR_IDLE_TIMEOUT:
+            temp=int(time.time()*1000) #ms
+
             print('funziona')
