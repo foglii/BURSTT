@@ -1,4 +1,3 @@
-
 from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
@@ -95,9 +94,15 @@ class PsrSwitch(app_manager.RyuApp):
         datapath.send_msg(out)
 
         tcp_header=pkt.get_protocol(tcp.tcp)
-        tcp_flag=pkt.get_protocol(tcp.tcp).
+        tcp_flag=pkt.get_protocol(tcp.tcp)
+        print('prima if')
         if tcp_header is not None and tcp_header.has_flags(tcp.TCP_SYN):
+            print("dopo if")
             self.logger.info("SYN packet detected")
+            print
+            temp_init=int(time.time()*1000) #ms tempo di inizio connessione
+            
+            
         for p in pkt:
             if p.protocol_name == 'tcp':
         # if the output port is not FLOODING
@@ -118,7 +123,7 @@ class PsrSwitch(app_manager.RyuApp):
                         datapath=datapath,
                         priority=10,
                         match=match,
-                        idle_timeout=2,
+                        idle_timeout=20,
                         instructions=inst,
                     )
                     datapath.send_msg(ofmsg)
