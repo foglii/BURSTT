@@ -6,6 +6,7 @@ from ryu.lib.packet import packet, ethernet, ether_types,tcp
 import datetime
 import time
 from ryu.base import app_manager
+init_array=[]
 
 # This implements a learning switch in the controller
 # The switch sends all packets to the controller
@@ -57,7 +58,6 @@ class PsrSwitch(app_manager.RyuApp):
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
         dpid = datapath.id
-
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocol(ethernet.ethernet)
 
@@ -101,10 +101,18 @@ class PsrSwitch(app_manager.RyuApp):
             self.logger.info("SYN packet detected")
             print
             temp_init=int(time.time()*1000) #ms tempo di inizio connessione
+            global init_array
+            init_array.append(str(temp_init))
+            if len(init_array)>1:
+                between_connections=int(init_array[-1])-int(init_array[-2])
+                print('tempo tra connessioni:ms',between_connections)
+            return init_array
+
             
             
         for p in pkt:
             if p.protocol_name == 'tcp':
+                print("ciao")
         # if the output port is not FLOODING
         # install a new flow rule *for the next packets*
                 if out_port != ofproto.OFPP_FLOOD:
@@ -123,16 +131,21 @@ class PsrSwitch(app_manager.RyuApp):
                         datapath=datapath,
                         priority=10,
                         match=match,
-                        idle_timeout=20,
+                        idle_timeout=5,
                         instructions=inst,
                     )
                     datapath.send_msg(ofmsg)
     @set_ev_cls(ofp_event.EventOFPFlowRemoved, MAIN_DISPATCHER)
     def flow_removed_handler(self, ev):
+        idle_timeout=5
         msg = ev.msg
         dp = msg.datapath
         ofp = dp.ofproto
+        print("idle prima if")
+        #al momento questo if non printa, sembra che questa funzione non venga
+        #mai chiamata per qualche ragione
         if msg.reason == ofp.OFPRR_IDLE_TIMEOUT:
+            print("idle timeout")
             temp=int(time.time()*1000) #ms
-
-            print('funziona')
+            t_connection=temp-int(init_array[-1])-idle_timeout
+            print("tempo di connessione:ms",t_connection)
