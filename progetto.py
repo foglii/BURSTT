@@ -1,3 +1,5 @@
+
+
 from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
@@ -95,7 +97,6 @@ class PsrSwitch(app_manager.RyuApp):
 
         tcp_header=pkt.get_protocol(tcp.tcp)
         tcp_flag=pkt.get_protocol(tcp.tcp)
-        print('prima if')
         if tcp_header is not None and tcp_header.has_flags(tcp.TCP_SYN):
             print("dopo if")
             self.logger.info("SYN packet detected")
@@ -106,38 +107,40 @@ class PsrSwitch(app_manager.RyuApp):
             if len(init_array)>1:
                 between_connections=int(init_array[-1])-int(init_array[-2])
                 print('tempo tra connessioni:ms',between_connections)
-            return init_array
 
-            
-            
-        for p in pkt:
-            if p.protocol_name == 'tcp':
-                print("ciao")
+
         # if the output port is not FLOODING
-        # install a new flow rule *for the next packets*
-                if out_port != ofproto.OFPP_FLOOD:
-                    # install a new flow rule
-                    match = parser.OFPMatch(
-                        eth_src=src,
-                        eth_dst=dst
-                    )
-                    inst = [
-                        parser.OFPInstructionActions(
-                            ofproto.OFPIT_APPLY_ACTIONS,
-                            actions
-                        )
-                    ]
-                    ofmsg = parser.OFPFlowMod(
-                        datapath=datapath,
-                        priority=10,
-                        match=match,
-                        idle_timeout=5,
-                        instructions=inst,
-                    )
-                    datapath.send_msg(ofmsg)
+         # install a new flow rule *for the next packets*
+            if out_port != ofproto.OFPP_FLOOD:
+                # install a new flow rule
+                match = parser.OFPMatch(
+                    eth_src=src,
+                    eth_dst=dst
+                )
+                self.add_flow(datapath, 10, match, actions)
+            return init_array
+        
+    def add_flow(self, datapath, priority, match, actions):
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                            actions)]   
+        flags=ofproto.OFPFF_SEND_FLOW_REM   
+        ofmsg = parser.OFPFlowMod(
+            datapath=datapath,
+            priority=priority,
+            flags=flags,
+            match=match,
+            idle_timeout=2,
+            instructions=inst,
+        )
+        datapath.send_msg(ofmsg)
+
+    
+                 
     @set_ev_cls(ofp_event.EventOFPFlowRemoved, MAIN_DISPATCHER)
     def flow_removed_handler(self, ev):
-        idle_timeout=5
+        idle_timeout=2000
         msg = ev.msg
         dp = msg.datapath
         ofp = dp.ofproto
