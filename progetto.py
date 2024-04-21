@@ -1,5 +1,3 @@
-
-
 from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
@@ -9,6 +7,9 @@ import datetime
 import time
 from ryu.base import app_manager
 init_array=[]
+def write_to_file(text):
+    with open("sdn-labs/progetto/BURSTT/output.txt","a") as file:
+        file.write(text+"\n")
 
 # This implements a learning switch in the controller
 # The switch sends all packets to the controller
@@ -96,22 +97,23 @@ class PsrSwitch(app_manager.RyuApp):
         datapath.send_msg(out)
 
         tcp_header=pkt.get_protocol(tcp.tcp)
-        tcp_flag=pkt.get_protocol(tcp.tcp)
-        if tcp_header is not None and tcp_header.has_flags(tcp.TCP_SYN):
-            print("dopo if")
-            self.logger.info("SYN packet detected")
-            print
-            temp_init=int(time.time()*1000) #ms tempo di inizio connessione
-            global init_array
-            init_array.append(str(temp_init))
-            if len(init_array)>1:
-                between_connections=int(init_array[-1])-int(init_array[-2])
-                print('tempo tra connessioni:ms',between_connections)
+        #print('prima if')
+        if tcp_header is not None:
+            #print("dopo if")
+            if tcp_header.has_flags(tcp.TCP_SYN) and not tcp_header.has_flags(tcp.TCP_ACK):
+                self.logger.info("SYN packet detected")
+                print
+                temp_init=int(time.time()*1000) #ms tempo di inizio connessione
+                global init_array
+                init_array.append(str(temp_init))
+                if len(init_array)>1:
+                    between_connections=int(init_array[-1])-int(init_array[-2])
+                    print('tempo tra connessioni:ms',between_connections)
+                    write_to_file("tempo tra connessioni:ms %d" %between_connections)
 
-
-        # if the output port is not FLOODING
-         # install a new flow rule *for the next packets*
-            if out_port != ofproto.OFPP_FLOOD:
+            # if the output port is not FLOODING
+            # install a new flow rule *for the next packets*
+            #if out_port != ofproto.OFPP_FLOOD:
                 # install a new flow rule
                 match = parser.OFPMatch(
                     eth_src=src,
@@ -120,7 +122,12 @@ class PsrSwitch(app_manager.RyuApp):
                 self.add_flow(datapath, 10, match, actions)
             return init_array
         
+
+            
+                
+
     def add_flow(self, datapath, priority, match, actions):
+        print("nuova regola")
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
@@ -131,7 +138,7 @@ class PsrSwitch(app_manager.RyuApp):
             priority=priority,
             flags=flags,
             match=match,
-            idle_timeout=2,
+            idle_timeout=1,
             instructions=inst,
         )
         datapath.send_msg(ofmsg)
@@ -140,7 +147,7 @@ class PsrSwitch(app_manager.RyuApp):
                  
     @set_ev_cls(ofp_event.EventOFPFlowRemoved, MAIN_DISPATCHER)
     def flow_removed_handler(self, ev):
-        idle_timeout=2000
+        timeout=1000
         msg = ev.msg
         dp = msg.datapath
         ofp = dp.ofproto
@@ -150,5 +157,10 @@ class PsrSwitch(app_manager.RyuApp):
         if msg.reason == ofp.OFPRR_IDLE_TIMEOUT:
             print("idle timeout")
             temp=int(time.time()*1000) #ms
-            t_connection=temp-int(init_array[-1])-idle_timeout
+            t_connection=temp-int(init_array[-1])-timeout
             print("tempo di connessione:ms",t_connection)
+            write_to_file("tempo di connessione:ms %d" %t_connection)
+
+
+
+        
