@@ -2,11 +2,16 @@ from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
-from ryu.lib.packet import packet, ethernet, ether_types,tcp
+from ryu.lib.packet import packet, ethernet, ether_types,tcp,ipv4
 import datetime
 import time
+#import tabulate 
 from ryu.base import app_manager
 init_array=[]
+t_connection_array=[]
+#list=[]
+#Durata=[]
+#Connessioni=[]
 def write_to_file(text):
     with open("sdn-labs/progetto/BURSTT/output.txt","a") as file:
         file.write(text+"\n")
@@ -95,10 +100,14 @@ class PsrSwitch(app_manager.RyuApp):
             data=msg.data
         )
         datapath.send_msg(out)
-
+        ip = pkt.get_protocol(ipv4.ipv4)
         tcp_header=pkt.get_protocol(tcp.tcp)
-        #print('prima if')
-        if tcp_header is not None:
+
+        if ip and tcp_header:
+            src_port=tcp_header.src_port
+            dst_port=tcp_header.dst_port
+            src_ip = ip.src
+            dst_ip = ip.dst
             #print("dopo if")
             if tcp_header.has_flags(tcp.TCP_SYN) and not tcp_header.has_flags(tcp.TCP_ACK):
                 self.logger.info("SYN packet detected")
@@ -108,16 +117,31 @@ class PsrSwitch(app_manager.RyuApp):
                 init_array.append(str(temp_init))
                 if len(init_array)>1:
                     between_connections=int(init_array[-1])-int(init_array[-2])
-                    print('tempo tra connessioni:ms',between_connections)
-                    write_to_file("tempo tra connessioni:ms %d" %between_connections)
+                    global list
+                    list.append(between_connections)
+                    print('Tempo tra connessioni:ms',between_connections)
+                    t = [int(i) for i in list]
+                    t_connection_mean=sum(t)/len(t)
+                    #Durata.rows=Durata.rows.append([between_connections,t_connection_mean])
+                    #Durata.table=tabulate(Durata.rows,Durata_h,tablefmt="simple")
+                    #write_to_file(Durata.table)
+                    write_to_file("Tempo tra connessioni medio:ms %d" %t_connection_mean)
+                    print("Tempo tra connessioni medio: ms",t_connection_mean)
+                    
+                   
+                    write_to_file("Tempo tra connessioni:ms %d" %between_connections)
 
             # if the output port is not FLOODING
             # install a new flow rule *for the next packets*
             #if out_port != ofproto.OFPP_FLOOD:
                 # install a new flow rule
                 match = parser.OFPMatch(
-                    eth_src=src,
-                    eth_dst=dst
+                    eth_type=0x0800,  # IPv4
+                    ip_proto=6,
+                    ipv4_src=src_ip,
+                    ipv4_dst=dst_ip,
+                    tcp_src=src_port,
+                    tcp_dst=dst_port
                 )
                 self.add_flow(datapath, 10, match, actions)
             return init_array
@@ -138,7 +162,7 @@ class PsrSwitch(app_manager.RyuApp):
             priority=priority,
             flags=flags,
             match=match,
-            idle_timeout=1,
+            idle_timeout=3,
             instructions=inst,
         )
         datapath.send_msg(ofmsg)
@@ -147,7 +171,8 @@ class PsrSwitch(app_manager.RyuApp):
                  
     @set_ev_cls(ofp_event.EventOFPFlowRemoved, MAIN_DISPATCHER)
     def flow_removed_handler(self, ev):
-        timeout=1000
+        global t_connection_array
+        timeout=3000
         msg = ev.msg
         dp = msg.datapath
         ofp = dp.ofproto
@@ -158,8 +183,14 @@ class PsrSwitch(app_manager.RyuApp):
             print("idle timeout")
             temp=int(time.time()*1000) #ms
             t_connection=temp-int(init_array[-1])-timeout
-            print("tempo di connessione:ms",t_connection)
-            write_to_file("tempo di connessione:ms %d" %t_connection)
+            t_connection_array.append(str(t_connection))
+            t = [int(i) for i in t_connection_array]
+            t_connection_mean=sum(t)/len(t)
+            write_to_file("Durata media:ms %d" %t_connection_mean)
+            print("Durata media: ms",t_connection_mean)
+            print("Durata:ms",t_connection)
+            write_to_file("Durata:ms %d" %t_connection)
+
 
 
 
