@@ -1,3 +1,4 @@
+
 from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
@@ -9,7 +10,7 @@ import time
 from ryu.base import app_manager
 init_array=[]
 t_connection_array=[]
-#list=[]
+lista=[]
 #Durata=[]
 #Connessioni=[]
 def write_to_file(text):
@@ -117,10 +118,12 @@ class PsrSwitch(app_manager.RyuApp):
                 init_array.append(str(temp_init))
                 if len(init_array)>1:
                     between_connections=int(init_array[-1])-int(init_array[-2])
-                    global list
-                    list.append(between_connections)
+                    global lista
+                    lista.append(str(between_connections))
                     print('Tempo tra connessioni:ms',between_connections)
-                    t = [int(i) for i in list]
+                    t = [int(i) for i in lista]
+                    if len(t)>5:
+                        t=t[-5:]
                     t_connection_mean=sum(t)/len(t)
                     #Durata.rows=Durata.rows.append([between_connections,t_connection_mean])
                     #Durata.table=tabulate(Durata.rows,Durata_h,tablefmt="simple")
