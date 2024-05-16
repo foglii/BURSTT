@@ -149,8 +149,8 @@ class PsrSwitch(app_manager.RyuApp):
                     match = parser.OFPMatch(
                         eth_type=0x0800,  # IPv4
                         ip_proto=6,
-                        ipv4_src=startCommStruct[len(startCommStruct)-1][3],
-                        ipv4_dst=startCommStruct[len(startCommStruct)-1][2],
+                        ipv4_src=startCommStruct[len(startCommStruct)-1][2],
+                        ipv4_dst=startCommStruct[len(startCommStruct)-1][3],
                         tcp_src=startCommStruct[len(startCommStruct)-1][0],
                         tcp_dst=startCommStruct[len(startCommStruct)-1][1]
                     )
@@ -202,7 +202,7 @@ class PsrSwitch(app_manager.RyuApp):
             print("idle timeout")
             temp=int(time.time()*1000) #ms
             #Find the way to know witch rule has been removed
-            endCommStruct.append([fields_json[4]["OXMTlv"]["value"], fields_json[5]["OXMTlv"]["value"], fields_json[2]["OXMTlv"]["value"] , fields_json[1]["OXMTlv"]["value"] ,temp,0])
+            endCommStruct.append([fields_json[4]["OXMTlv"]["value"], fields_json[5]["OXMTlv"]["value"], fields_json[1]["OXMTlv"]["value"] , fields_json[2]["OXMTlv"]["value"] ,temp,0])
             for start in range(len(startCommStruct)):
                 for end in range(len(endCommStruct)):
                     if startCommStruct[start][0] == endCommStruct[end][0] and startCommStruct[start][1] == endCommStruct[end][1] and startCommStruct[start][2] == endCommStruct[end][2] and startCommStruct[start][3] == endCommStruct[end][3]:
