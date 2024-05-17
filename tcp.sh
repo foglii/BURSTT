@@ -1,3 +1,4 @@
+
 #!/bin/bash
 while true; do
     duration=$((RANDOM % 10 + 1))  # Random duration between 1 and 10 seconds
@@ -10,5 +11,5 @@ while true; do
     #h1_ip=$(h1 ifconfig h1-eth0 inet )
     iperf -c 10.0.0.1 -t $duration
     sleep $total_sleep
-    
+
 done
