@@ -6,20 +6,15 @@ from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet, ethernet, ether_types,tcp,ipv4
 import datetime
 import time
-#import matplotlib.pyplot as plt
-import numpy as np
-#import tabulate 
 from ryu.base import app_manager
 
 startCommStruct = []
 endCommStruct = []
 timeStruct = []
-between_connections=[ 0 , []]
+between_connections=[]
 first_packet = 0
 second_packet = 0
 
-#Durata=[]
-#Connessioni=[]
 def write_to_file(text):
     with open("sdn-labs/progetto/BURSTT/output.txt","a") as file:
         file.write(text+"\n")
@@ -90,12 +85,8 @@ class PsrSwitch(app_manager.RyuApp):
 
         if dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][dst]
-            #print("mac")
         else:
             out_port = ofproto.OFPP_FLOOD
-            #print("flood")
-
-#        self.logger.info("packet in %s %s %s %s %s", dpid, src, dst, in_port, out_port)
 
         actions = [
             parser.OFPActionOutput(out_port)
@@ -122,13 +113,7 @@ class PsrSwitch(app_manager.RyuApp):
        
         if ip and tcp_header:
             
-            #startTimeStruc.append((tcp_header.src_port,tcp_header.dst_port,ip.src,ip.dst))
-            #dst_port=tcp_header.dst_port
-            #src_ip = ip.src
-            #dst_ip = ip.dst
-
             if tcp_header.has_flags(tcp.TCP_SYN) and not tcp_header.has_flags(tcp.TCP_ACK):
-                self.logger.info("SYN packet detected")
                 temp_init=int(time.time()*1000) #ms tempo di inizio connessione
                 
                 isAlreadyRegister = 0
@@ -145,21 +130,6 @@ class PsrSwitch(app_manager.RyuApp):
                     global first_packet
                     second_packet = first_packet
                     first_packet = temp_init
-                    #print(startCommStruct)
-                    #t = [int(i) for i in lista]
-                    #if len(t)>5:
-                    #    t=t[-5:]
-                    #t_connection_mean=sum(t)/len(t)
-                    #Durata.rows=Durata.rows.append([between_connections,t_connection_mean])
-                    #Durata.table=tabulate(Durata.rows,Durata_h,tablefmt="simple")
-                    #write_to_file(Durata.table)
-                    #print("Tempo tra connessioni medio: ms",t_connection_mean
-                    #write_to_file("Tempo tra connessioni:ms %d" %between_connections)
-
-            # if the output port is not FLOODING
-            # install a new flow rule *for the next packets*
-            #if out_port != ofproto.OFPP_FLOOD:
-                # install a new flow rule
                     match = parser.OFPMatch(
                         eth_type=0x0800,  # IPv4
                         ip_proto=6,
@@ -181,22 +151,36 @@ class PsrSwitch(app_manager.RyuApp):
                     self.add_flow(datapath, 10, match, actions_2)
 
 
-                if second_packet != 0:
-                    between_connections[1].append((first_packet - second_packet))
-                    if between_connections[0] != 0:
-                        between_connections[0]=(between_connections[0] + between_connections[1][len(between_connections[1]) - 1])/2
-                    else:
-                        between_connections[0] = first_packet - second_packet;
-                    #global lista0
-                   #lista.append(str(between_connections))
-                    print('Tempo medio tra connessioni:ms',between_connections[0])
-                    print('Tempo tra connessioni:', first_packet - second_packet)
+                if len(between_connections) == 0:
+                    between_connections.append([ip.src, ip.dst, 0, 0, temp_init])
+                else:
+                    time_btw_found = 0
+                    for btw_con in range(len(between_connections)):
+                        if ip.src == between_connections[btw_con][0] and ip.dst == between_connections[btw_con][1]:
+                            if between_connections[btw_con][2] == 0:
+                                between_connections[btw_con][2] = temp_init - between_connections[btw_con][4]
+                                between_connections[btw_con][3] = temp_init - between_connections[btw_con][4]
+                                between_connections[btw_con][4] = temp_init
+                            else:
+                                between_connections[btw_con][2] = (between_connections[btw_con][2] + temp_init - between_connections[btw_con][4]) / 2 
+                                between_connections[btw_con][3] = temp_init - between_connections[btw_con][4]
+                                between_connections[btw_con][4] = temp_init
+                            
+                            print('Tempo tra connessioni di \033[38;5;11m\033[49m'+ str(between_connections[btw_con][0]) + ' --> '+ str(between_connections[btw_con][1]) + '\033[39m\033[49m : \033[38;5;10m\033[49m' + str(between_connections[btw_con][3]) + ' \033[39m\033[49m ms' )
+                            print('Tempo medio tra connessioni di \033[38;5;11m\033[49m'+ str(between_connections[btw_con][0]) + ' --> '+ str(between_connections[btw_con][1]) + '\033[39m\033[49m :\033[38;5;10m\033[49m ' + str(between_connections[btw_con][2]) + ' \033[39m\033[49m ms' )
+                            time_btw_found = 1
+                            break
+                    
+                    if time_btw_found == 0:
+                        between_connections.append([ip.src, ip.dst, 0, 0, temp_init])
+                    
+
 
 
 
 
     def add_flow(self, datapath, priority, match, actions):
-        print("nuova regola")
+        print("Nuova regola")
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,actions)]
@@ -222,58 +206,36 @@ class PsrSwitch(app_manager.RyuApp):
         ofp = dp.ofproto
         parser = ofproto_v1_3_parser
         fields_json = parser.OFPMatch.to_jsondict(ev.msg.match)["OFPMatch"]["oxm_fields"]
-        print("Flow Removed: ")
         if msg.reason == ofp.OFPRR_IDLE_TIMEOUT:
-            print("idle timeout")
+            print("Idle timeout received")
             temp=int(time.time()*1000) #ms
             global endCommStruct
             global second_packet
             global timeStruct
-            #Find the way to know witch rule has been removed
+            notPresent = 1
             endCommStruct.append([fields_json[4]["OXMTlv"]["value"], fields_json[5]["OXMTlv"]["value"], fields_json[2]["OXMTlv"]["value"] , fields_json[3]["OXMTlv"]["value"] ,temp,0])
-            #print("lunghezza start struct",len(startCommStruct))
-            #print(startCommStruct)
-            #print(endCommStruct)
-#print("lunghezza end struct",len(endCommStruct))
             for start in range(len(startCommStruct)):
-                # print("valore start ",start)
                 for end in range(len(endCommStruct)):
-                    # print("valore end",end)
-                    # print(startCommStruct[start][0])
-                    # print(startCommStruct[start][1])
-                    # print(startCommStruct[start][2])
-                    # print(startCommStruct[start][3])
-                    try:
                         if startCommStruct[start][0] == endCommStruct[end][0] and startCommStruct[start][1] == endCommStruct[end][1] and startCommStruct[start][2] == endCommStruct[end][2] and startCommStruct[start][3] == endCommStruct[end][3]:
                             notPresent = 1
                             for oldConnection in range(len(timeStruct)):
                                 if timeStruct[oldConnection][0] == startCommStruct[start][2] and timeStruct[oldConnection][1] == startCommStruct[start][3]:
                                     timeStruct[oldConnection][2] = (timeStruct[oldConnection][2] + (endCommStruct[end][4] - startCommStruct[start][4] - timeout))/ 2;
                                     timeStruct[oldConnection][3].append(endCommStruct[end][4] - startCommStruct[start][4] - timeout);
-                                    print(timeStruct)
+                                    print('Durata connessione tra \033[38;5;11m\033[49m'+ str(timeStruct[oldConnection][0]) + '\033[39m\033[49m e \033[38;5;11m\033[49m' + str(timeStruct[oldConnection][1]) + '\033[39m\033[49m : \033[38;5;10m\033[49m' + str(timeStruct[oldConnection][3][len(timeStruct[oldConnection][3])-1])+ '\033[39m\033[49m')
+                                    print('Durata media connessione tra \033[38;5;11m\033[49m'+ str(timeStruct[oldConnection][0]) + '\033[39m\033[49m e \033[38;5;11m\033[49m' + str(timeStruct[oldConnection][1]) + '\033[39m\033[49m : \033[38;5;10m\033[49m' + str(timeStruct[oldConnection][2])+'\033[39m\033[49m')
+
                                     startCommStruct.pop(start)
                                     endCommStruct.pop(end)
                                     notPresent = 0
-                                    end = end + 1
-                                    start = start + 1
                                     break
                             if notPresent == 1:
-                                timeStruct.append([startCommStruct[start][2],startCommStruct[start][3], endCommStruct[end][4] - startCommStruct[start][4] - timeout , [endCommStruct[end][4] - startCommStruct[start][4]-timeout]
-                                               ])
-                                print(timeStruct)
-                            # x=np.linspace(0,1,len(timeStruct[0][3]))
-                            # print("ciao")
-                            # plt.plot(x,timeStruct[0][3])
-                            # plt.show()
+                                timeStruct.append([startCommStruct[start][2],startCommStruct[start][3], endCommStruct[end][4] - startCommStruct[start][4] - timeout , [endCommStruct[end][4] - startCommStruct[start][4]-timeout]])
+                                print('Durata connessione tra \033[38;5;11m\033[49m'+ str(timeStruct[len(timeStruct)-1][0]) + ' \033[39m\033[49m e \033[38;5;11m\033[49m' + str(timeStruct[len(timeStruct)-1][1]) + ' \033[39m\033[49m: \033[38;5;10m\033[49m' + str(timeStruct[len(timeStruct)-1][3][len(timeStruct[len(timeStruct)-1][3])-1]) + '\033[39m\033[49m')
+                                print('Durata media connessione tra \033[38;5;11m\033[49m'+ str(timeStruct[len(timeStruct)-1][0]) + '\033[39m\033[49m e \033[38;5;11m\033[49m' + str(timeStruct[len(timeStruct)-1][1]) + '\033[39m\033[49m : \033[38;5;10m\033[49m' + str(timeStruct[len(timeStruct)-1][2])+ '\033[39m\033[49m')
+
                             else:
                                 break
-                    except:  
-                        print("") 
-           
-            #t_connection=temp-int(init_array[-1])-timeout
-            #t_connection_array.append(str(t_connection))
-            #t = [int(i) for i in t_connection_array]
-            #t_connection_mean=sum(t)/len(t)
-            #print("Durata:ms",t_connection)
-            #write_to_file("Durata:ms %d" %t_con
-
+                 
+                if notPresent == 0:
+                    break
