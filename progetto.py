@@ -231,8 +231,9 @@ class PsrSwitch(app_manager.RyuApp):
                                     break
                             if notPresent == 1:
                                 timeStruct.append([startCommStruct[start][2],startCommStruct[start][3], endCommStruct[end][4] - startCommStruct[start][4] - timeout , [endCommStruct[end][4] - startCommStruct[start][4]-timeout]])
-                                print('Durata connessione tra \033[38;5;11m\033[49m'+ str(timeStruct[len(timeStruct)-1][0]) + ' \033[39m\033[49m e \033[38;5;11m\033[49m' + str(timeStruct[len(timeStruct)-1][1]) + ' \033[39m\033[49m: \033[38;5;10m\033[49m' + str(timeStruct[len(timeStruct)-1][3][len(timeStruct[len(timeStruct)-1][3])-1]) + '\033[39m\033[49m')
-                                print('Durata media connessione tra \033[38;5;11m\033[49m'+ str(timeStruct[len(timeStruct)-1][0]) + '\033[39m\033[49m e \033[38;5;11m\033[49m' + str(timeStruct[len(timeStruct)-1][1]) + '\033[39m\033[49m : \033[38;5;10m\033[49m' + str(timeStruct[len(timeStruct)-1][2])+ '\033[39m\033[49m')
+                                if len(timeStruct)!=2:
+                                    print('Durata connessione tra \033[38;5;11m\033[49m'+ str(timeStruct[len(timeStruct)-1][0]) + ' \033[39m\033[49m e \033[38;5;11m\033[49m' + str(timeStruct[len(timeStruct)-1][1]) + ' \033[39m\033[49m: \033[38;5;10m\033[49m' + str(timeStruct[len(timeStruct)-1][3][len(timeStruct[len(timeStruct)-1][3])-1]) + '\033[39m\033[49m')
+                                    print('Durata media connessione tra \033[38;5;11m\033[49m'+ str(timeStruct[len(timeStruct)-1][0]) + '\033[39m\033[49m e \033[38;5;11m\033[49m' + str(timeStruct[len(timeStruct)-1][1]) + '\033[39m\033[49m : \033[38;5;10m\033[49m' + str(timeStruct[len(timeStruct)-1][2])+ '\033[39m\033[49m')
 
                             else:
                                 break
