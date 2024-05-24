@@ -132,7 +132,7 @@ class PsrSwitch(app_manager.RyuApp):
                     first_packet = temp_init
                     match = parser.OFPMatch(
                         eth_type=0x0800,  # IPv4
-                        ip_proto=4,
+                        ip_proto=6,
                         ipv4_src=startCommStruct[len(startCommStruct)-1][2],
                         ipv4_dst=startCommStruct[len(startCommStruct)-1][3],
                         tcp_src=startCommStruct[len(startCommStruct)-1][0],
@@ -142,7 +142,7 @@ class PsrSwitch(app_manager.RyuApp):
 
                     match = parser.OFPMatch(
                         eth_type=0x0800,  # IPv4
-                        ip_proto=4,
+                        ip_proto=6,
                         ipv4_src=startCommStruct[len(startCommStruct)-1][3],
                         ipv4_dst=startCommStruct[len(startCommStruct)-1][2],
                         tcp_src=startCommStruct[len(startCommStruct)-1][1],
