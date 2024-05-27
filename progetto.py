@@ -19,10 +19,6 @@ def write_to_file(text):
     with open("sdn-labs/progetto/BURSTT/output.txt","a") as file:
         file.write(text+"\n")
 
-# This implements a learning switch in the controller
-# The switch sends all packets to the controller
-# The controller implements the MAC table using a python dictionary
-# If the MAC dst is known, add rule to the switch
 class PsrSwitch(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
@@ -30,7 +26,7 @@ class PsrSwitch(app_manager.RyuApp):
         super(PsrSwitch, self).__init__(*args, **kwargs)
         self.mac_to_port = {}
 
-    # execute at switch registration
+   
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
         datapath = ev.msg.datapath
@@ -150,7 +146,7 @@ class PsrSwitch(app_manager.RyuApp):
                     )
                     self.add_flow(datapath, 10, match, actions_2)
 
-
+                     
                 if len(between_connections) == 0:
                     between_connections.append([ip.src, ip.dst, 0, 0, temp_init])
                 else:
@@ -231,10 +227,7 @@ class PsrSwitch(app_manager.RyuApp):
                                     break
                             if notPresent == 1:
                                 timeStruct.append([startCommStruct[start][2],startCommStruct[start][3], endCommStruct[end][4] - startCommStruct[start][4] - timeout , [endCommStruct[end][4] - startCommStruct[start][4]-timeout]])
-                                if len(timeStruct)!=2:
-                                    print('Durata connessione tra \033[38;5;11m\033[49m'+ str(timeStruct[len(timeStruct)-1][0]) + ' \033[39m\033[49m e \033[38;5;11m\033[49m' + str(timeStruct[len(timeStruct)-1][1]) + ' \033[39m\033[49m: \033[38;5;10m\033[49m' + str(timeStruct[len(timeStruct)-1][3][len(timeStruct[len(timeStruct)-1][3])-1]) + '\033[39m\033[49m')
-                                    print('Durata media connessione tra \033[38;5;11m\033[49m'+ str(timeStruct[len(timeStruct)-1][0]) + '\033[39m\033[49m e \033[38;5;11m\033[49m' + str(timeStruct[len(timeStruct)-1][1]) + '\033[39m\033[49m : \033[38;5;10m\033[49m' + str(timeStruct[len(timeStruct)-1][2])+ '\033[39m\033[49m')
-
+                                
                             else:
                                 break
                  
